@@ -2,7 +2,6 @@
     "name": "daebang",
     "version": "0.1.0",
     "private": true,
-    "proxy": "http://apis.data.go.kr",
     "dependencies": {
         "@reduxjs/toolkit": "^2.3.0",
         "@tanstack/react-query": "^5.61.0",
