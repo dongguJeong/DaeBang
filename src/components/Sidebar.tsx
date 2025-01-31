@@ -3,8 +3,6 @@ import styled from 'styled-components';
 import { FaAngleLeft } from 'react-icons/fa';
 import Search from './Search';
 import FilterBar from './Filter/FilterBar';
-import { WIDTH } from '../utils/constants';
-
 interface SidebarProps {
     children: ReactNode;
 }

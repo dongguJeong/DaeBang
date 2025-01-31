@@ -1,93 +1,28 @@
-import { useEffect, useState, Fragment } from 'react';
+import { useState, Fragment, useMemo } from 'react';
 import styled from 'styled-components';
 import ErrorBox from '../common/ErrorBox';
 import { CustomOverlayMap, Map, MapMarker } from 'react-kakao-maps-sdk';
 import { useTypedSelector } from '../../hooks/redux';
-
-type CategoryCode =
-    | ''
-    | 'MT1'
-    | 'CS2'
-    | 'PS3'
-    | 'SC4'
-    | 'AC5'
-    | 'PK6'
-    | 'OL7'
-    | 'SW8'
-    | 'BK9'
-    | 'CT1'
-    | 'AG2'
-    | 'PO3'
-    | 'AT4'
-    | 'AD5'
-    | 'FD6'
-    | 'CE7'
-    | 'HP8'
-    | 'PM9';
-
-interface Category {
-    id: CategoryCode;
-    name: string;
-    order: number;
-}
-
-// 은행을 눌렀는 데 자꾸 주유소가 표시가 됨
-const categories: Category[] = [
-    { id: 'BK9', name: '은행', order: 0 },
-    { id: 'MT1', name: '마트', order: 1 },
-    { id: 'PM9', name: '약국', order: 2 },
-    { id: 'SW8', name: '지하철', order: 3 },
-    { id: 'PO3', name: '관공서', order: 4 },
-    { id: 'CS2', name: '편의점', order: 5 },
-];
-
-interface PlacesSearchResultItem {
-    id: string;
-    place_name: string;
-    category_name: string;
-    category_group_code?: `${CategoryCode}` | `${Exclude<CategoryCode, ''>}`[];
-    category_group_name: string;
-    phone: string;
-    address_name: string;
-    road_address_name: string;
-    x: string;
-    y: string;
-    place_url: string;
-    distance: string;
-}
-
-type PlacesSearchResult = PlacesSearchResultItem[];
-
-export enum Status {
-    ERROR = 'ERROR',
-    OK = 'OK',
-    ZERO_RESULT = 'ZERO_RESULT',
-}
+import {
+    Category,
+    CategoryCode,
+    PlacesSearchResultItem,
+} from '../../models/DetailNeighbor.model';
+import { useDetailNeighbor } from '../../hooks/useDetailNeighbor';
+import { categories } from '../../utils/constants';
 
 const DetailNeighbor = () => {
     const { detailInfo } = useTypedSelector((state) => state.detail);
-    const position = { lat: detailInfo!.y, lng: detailInfo!.x };
+
     const [currCategory, setCurrCategory] = useState<CategoryCode>('BK9');
-    const [data, setData] = useState<PlacesSearchResult>([]);
     const [order, setOrder] = useState<number>(0);
     const [infoOpen, setInfoOpen] = useState<string>('');
 
-    useEffect(() => {
-        const ps = new kakao.maps.services.Places();
-
-        const placesSearchCB = (data: PlacesSearchResult, status: Status) => {
-            if (status === Status.OK) {
-                setData(data);
-            } else {
-                setData([]);
-            }
-        };
-
-        ps.categorySearch(currCategory, placesSearchCB, {
-            location: new kakao.maps.LatLng(position.lat, position.lng),
-            useMapBounds: true,
-        });
-    }, [currCategory]);
+    const { neighbors } = useDetailNeighbor({ categoryId: currCategory });
+    const position = useMemo(
+        () => ({ lat: detailInfo!.y, lng: detailInfo!.x }),
+        [detailInfo],
+    );
 
     const markerImageSrc = '/places_category.png';
     const imageSize = { width: 27, height: 28 };
@@ -110,7 +45,7 @@ const DetailNeighbor = () => {
     return (
         <DetailNeighborStyle>
             <h2>주변 시설</h2>
-            {!data ? (
+            {!neighbors ? (
                 <>
                     <ErrorBox
                         message="주변 정보 검색에 실패했습니다"
@@ -126,13 +61,13 @@ const DetailNeighbor = () => {
                         zoomable={false}
                     >
                         <MapMarker position={position} />
-                        {data.map((item) => (
-                            <Fragment key={item.id}>
+                        {neighbors.map((neighbor: PlacesSearchResultItem) => (
+                            <Fragment key={neighbor.id}>
                                 <MapMarker
-                                    onClick={() => clickMarker(item.id)}
+                                    onClick={() => clickMarker(neighbor.id)}
                                     position={{
-                                        lat: parseFloat(item.y),
-                                        lng: parseFloat(item.x),
+                                        lat: parseFloat(neighbor.y),
+                                        lng: parseFloat(neighbor.x),
                                     }}
                                     image={{
                                         src: markerImageSrc,
@@ -149,17 +84,17 @@ const DetailNeighbor = () => {
                                 ></MapMarker>
                                 <CustomOverlayMap
                                     position={{
-                                        lat: parseFloat(item.y),
-                                        lng: parseFloat(item.x),
+                                        lat: parseFloat(neighbor.y),
+                                        lng: parseFloat(neighbor.x),
                                     }}
                                     yAnchor={1}
                                     xAnchor={0.5}
                                 >
-                                    {infoOpen === item.id ? (
+                                    {infoOpen === neighbor.id ? (
                                         <div className="info">
-                                            <span>{item.place_name} </span>
+                                            <span>{neighbor.place_name} </span>
                                             <br />
-                                            <span>{item.distance} m </span>
+                                            <span>{neighbor.distance} m </span>
                                         </div>
                                     ) : null}
                                 </CustomOverlayMap>
